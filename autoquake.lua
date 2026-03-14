@@ -1,38 +1,40 @@
 repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players.LocalPlayer.Character
+task.wait(3)
 
-print("Auto Quake System Start")
+print("AUTO QUAKE SYSTEM START")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local systemState = "ROLL"
+local systemState = "FARM"
 
 -------------------------------------------------
--- CHECK FRUIT
+-- LEVEL CHECK
 -------------------------------------------------
 
-local function hasQuakeFruit()
+local function getLevel()
 
-	local char = player.Character
-	local backpack = player:FindFirstChild("Backpack")
+	local data = player:FindFirstChild("Data")
 
-	if backpack and backpack:FindFirstChild("Quake Fruit") then
-		return true
+	if data and data:FindFirstChild("Level") then
+		return data.Level.Value
 	end
 
-	if char and char:FindFirstChild("Quake Fruit") then
-		return true
-	end
+	return 0
 
-	return false
 end
+
+-------------------------------------------------
+-- CHECK QUAKE
+-------------------------------------------------
 
 local function hasQuake()
 
-	local char = player.Character
 	local backpack = player:FindFirstChild("Backpack")
+	local char = player.Character
 
 	if backpack and backpack:FindFirstChild("Quake") then
 		return true
@@ -49,6 +51,7 @@ local function hasQuake()
 	end
 
 	return false
+
 end
 
 -------------------------------------------------
@@ -57,7 +60,7 @@ end
 
 local function resetStats()
 
-	print("Reset Stats")
+	print("RESET STATS")
 
 	ReplicatedStorage
 	:WaitForChild("RemoteEvents")
@@ -69,18 +72,20 @@ local function resetStats()
 end
 
 -------------------------------------------------
--- AUTO STATS FAST
+-- AUTO STATS
 -------------------------------------------------
 
-local statRemote = ReplicatedStorage
+local statRemote =
+ReplicatedStorage
 :WaitForChild("RemoteEvents")
 :WaitForChild("AllocateStat")
 
 local function autoStats()
 
-	print("Auto Stats Started")
+	print("AUTO STATS START")
 
-	local statPoints = player
+	local statPoints =
+	player
 	:WaitForChild("Data")
 	:WaitForChild("StatPoints")
 
@@ -110,75 +115,65 @@ local function autoStats()
 end
 
 -------------------------------------------------
--- TWEEN
+-- TELEPORT FARM
 -------------------------------------------------
 
-local function tweenToPosition(targetCFrame,speed)
+local teleported = false
 
-	local char = player.Character or player.CharacterAdded:Wait()
+local farmPos = CFrame.new(
+321.706757,
+-1.539090,
+-1756.500977
+)
+
+local function teleportToFarm()
+
+	if teleported then return end
+	teleported = true
+
+	print("Teleport Shinjuku")
+
+	ReplicatedStorage
+	.Remotes
+	.TeleportToPortal
+	:FireServer("Shinjuku")
+
+	task.wait(5)
+
+	local char = player.Character
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local time = distance / speed
-
-	local tween = TweenService:Create(
-		hrp,
-		TweenInfo.new(time,Enum.EasingStyle.Linear),
-		{CFrame = targetCFrame}
-	)
-
-	tween:Play()
-	tween.Completed:Wait()
+	for i=1,10 do
+		hrp.CFrame = farmPos
+		task.wait()
+	end
 
 end
 
 -------------------------------------------------
--- TELEPORT SAILOR
+-- AUTO ROLL FRUIT
 -------------------------------------------------
 
-local function teleportSailor()
+local function rollFruit()
 
-	print("Teleport Sailor")
+	print("ROLLING FRUIT")
 
-	ReplicatedStorage.Remotes.TeleportToPortal:FireServer("Sailor")
+	local npc =
+	workspace
+	:WaitForChild("ServiceNPCs")
+	:WaitForChild("GemFruitDealer")
 
-end
-
--------------------------------------------------
--- AUTO ROLL
--------------------------------------------------
-
-local function autoRollFruit()
-
-	print("Start Rolling")
-
-	local npc = workspace:WaitForChild("ServiceNPCs"):WaitForChild("GemFruitDealer")
-
-	task.wait(6)
-
-	local part =
-	npc:FindFirstChild("HumanoidRootPart")
-	or npc:FindFirstChild("Head")
-	or npc.PrimaryPart
-
-	local target = part.CFrame * CFrame.new(0,0,4)
-
-	tweenToPosition(target,100)
-
-	task.wait(1)
-
-	local prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
+	local prompt =
+	npc:FindFirstChildWhichIsA("ProximityPrompt",true)
 
 	while true do
 
-		if hasQuakeFruit() then
-			print("Quake Fruit Found")
+		if player.Backpack:FindFirstChild("Quake Fruit") then
+			print("FOUND QUAKE FRUIT")
 			break
 		end
 
 		fireproximityprompt(prompt)
-
-		print("Rolling fruit...")
 
 		task.wait(3)
 
@@ -192,170 +187,83 @@ end
 
 local function eatQuake()
 
-	print("Start Eating Quake")
+	print("EATING QUAKE")
 
-	while true do
-
-		if hasQuake() then
-			print("Quake acquired")
-			break
-		end
+	while not hasQuake() do
 
 		local fruit =
-		player.Backpack:FindFirstChild("Quake Fruit") or
-		player.Character:FindFirstChild("Quake Fruit")
+		player.Backpack:FindFirstChild("Quake Fruit")
 
 		if fruit then
 
-			local hum = player.Character:FindFirstChild("Humanoid")
+			local hum =
+			player.Character:FindFirstChild("Humanoid")
 
-			if hum then
-				hum:EquipTool(fruit)
-			end
+			hum:EquipTool(fruit)
 
 			ReplicatedStorage
-			:WaitForChild("RemoteEvents")
-			:WaitForChild("FruitAction")
+			.RemoteEvents
+			.FruitAction
 			:FireServer("eat","Quake Fruit")
 
 		end
 
-		task.wait(0.5)
+		task.wait(1)
 
 	end
+
+	print("QUAKE ACQUIRED")
 
 end
 
 -------------------------------------------------
--- AUTO EQUIP QUAKE
+-- MAIN FARM LOOP
 -------------------------------------------------
 
 task.spawn(function()
 
-	while task.wait(0.5) do
+	while true do
 
 		if systemState ~= "FARM" then
+			task.wait(2)
 			continue
 		end
 
-		local char = player.Character
-		local backpack = player:FindFirstChild("Backpack")
+		local level = getLevel()
 
-		if not char or not backpack then
-			continue
-		end
+		print("LEVEL:",level)
 
-		local hum = char:FindFirstChild("Humanoid")
+		if level >= 4000 then
 
-		if not hum then
-			continue
-		end
+			print("LEVEL 4000 REACHED")
 
-		local quake =
-		backpack:FindFirstChild("Quake") or
-		char:FindFirstChild("Quake")
+			systemState = "ROLL"
 
-		if quake then
+			rollFruit()
 
-			if quake.Parent ~= char then
-				hum:EquipTool(quake)
-			end
+			eatQuake()
+
+			resetStats()
+
+			systemState = "FARM"
 
 		end
+
+		task.wait(10)
 
 	end
 
 end)
 
 -------------------------------------------------
--- TELEPORT FARM
+-- START
 -------------------------------------------------
 
-local lockPos = CFrame.new(
-321.706757,
--1.539090,
--1756.500977
-)
+resetStats()
 
-local function teleportToSpot()
+task.spawn(autoStats)
 
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	print("Teleport Farm")
-
-	ReplicatedStorage
-	.Remotes
-	.TeleportToPortal
-	:FireServer("Shinjuku")
-
-	task.wait(5)
-
-	for i = 1,10 do
-		hrp.CFrame = lockPos
-		task.wait()
-	end
-
-end
-
--------------------------------------------------
--- SETTINGS ลดแลค
--------------------------------------------------
-
-local SettingsToggle = ReplicatedStorage
-:WaitForChild("RemoteEvents")
-:WaitForChild("SettingsToggle")
-
-local settings = {
-"DisablePvP",
-"DisableVFX",
-"DisableOtherVFX",
-"RemoveTexture",
-"AutoSkillC",
-"RemoveShadows"
-}
-
-for _,v in pairs(settings) do
-	SettingsToggle:FireServer(v,true)
-end
-
--------------------------------------------------
--- MAIN
--------------------------------------------------
-
-if hasQuake() then
-
-	print("Already have Quake")
-
-	resetStats()
-
-	systemState = "FARM"
-
-	task.spawn(autoStats)
-
-	teleportToSpot()
-
-else
-
-	teleportSailor()
-
-	task.wait(6)
-
-	autoRollFruit()
-
-	eatQuake()
-
-	resetStats()
-
-	systemState = "FARM"
-
-	task.spawn(autoStats)
-
-	task.wait(3)
-
-	teleportToSpot()
-
-end
+teleportToFarm()
 
 -------------------------------------------------
 -- RESPAWN
@@ -365,9 +273,11 @@ player.CharacterAdded:Connect(function()
 
 	if systemState == "FARM" then
 
+		teleported = false
+
 		task.wait(3)
 
-		teleportToSpot()
+		teleportToFarm()
 
 	end
 
@@ -391,8 +301,8 @@ task.spawn(function()
 
 			local hrp = char.HumanoidRootPart
 
-			if (hrp.Position - lockPos.Position).Magnitude > 10 then
-				hrp.CFrame = lockPos
+			if (hrp.Position - farmPos.Position).Magnitude > 15 then
+				hrp.CFrame = farmPos
 			end
 
 		end
