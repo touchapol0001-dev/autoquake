@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local systemState = "ROLL"
+local teleported = false
 
 -------------------------------------------------
 -- CHECK FRUIT
@@ -55,47 +56,12 @@ end
 -- RESET + AUTO STATS
 -------------------------------------------------
 
-local function allocateStats()
+local statRemote =
+ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("AllocateStat")
 
-	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
+local function resetStats()
 
-	while statPoints.Value > 0 do
-
-		local total = statPoints.Value
-		local powerPoints = math.floor(total * 0.8)
-		local defensePoints = total - powerPoints
-
-		for i = 1, powerPoints do
-
-			if statPoints.Value <= 0 then break end
-
-			ReplicatedStorage
-			:WaitForChild("RemoteEvents")
-			:WaitForChild("AllocateStat")
-			:FireServer("Power",1)
-
-		end
-
-		for i = 1, defensePoints do
-
-			if statPoints.Value <= 0 then break end
-
-			ReplicatedStorage
-			:WaitForChild("RemoteEvents")
-			:WaitForChild("AllocateStat")
-			:FireServer("Defense",1)
-
-		end
-
-		task.wait()
-
-	end
-
-end
-
-local function resetAndAllocateStats()
-
-	print("Resetting Stats...")
+	print("Resetting Stats")
 
 	ReplicatedStorage
 	:WaitForChild("RemoteEvents")
@@ -104,27 +70,38 @@ local function resetAndAllocateStats()
 
 	task.wait(2)
 
-	allocateStats()
-
 end
 
--------------------------------------------------
--- AUTO ALLOCATE WHEN LEVEL UP
--------------------------------------------------
-
-task.spawn(function()
+local function autoStats()
 
 	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
 
-	statPoints:GetPropertyChangedSignal("Value"):Connect(function()
+	while task.wait(0.5) do
 
-		if systemState == "FARM" then
-			allocateStats()
+		if systemState ~= "FARM" then
+			continue
 		end
 
-	end)
+		local points = statPoints.Value
 
-end)
+		if points > 0 then
+
+			local power = math.floor(points * 0.8)
+			local defense = points - power
+
+			for i=1,power do
+				statRemote:FireServer("Power",1)
+			end
+
+			for i=1,defense do
+				statRemote:FireServer("Defense",1)
+			end
+
+		end
+
+	end
+
+end
 
 -------------------------------------------------
 -- TWEEN
@@ -169,7 +146,9 @@ local function autoRollFruit()
 
 	print("Start Rolling")
 
-	local npc = workspace:WaitForChild("ServiceNPCs"):WaitForChild("GemFruitDealer")
+	local npc =
+	workspace:WaitForChild("ServiceNPCs")
+	:WaitForChild("GemFruitDealer")
 
 	task.wait(6)
 
@@ -189,7 +168,14 @@ local function autoRollFruit()
 
 	task.wait(1)
 
-	local prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
+	local prompt
+
+	repeat
+		prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
+		task.wait(0.5)
+	until prompt
+
+	print("Prompt Found")
 
 	while true do
 
@@ -234,10 +220,15 @@ local function eatQuake()
 				hum:EquipTool(fruit)
 			end
 
+			local args = {
+				"eat",
+				"Quake Fruit"
+			}
+
 			ReplicatedStorage
 			:WaitForChild("RemoteEvents")
 			:WaitForChild("FruitAction")
-			:FireServer("eat","Quake Fruit")
+			:FireServer(unpack(args))
 
 		end
 
@@ -306,6 +297,9 @@ local lockPos = CFrame.new(
 
 local function teleportToSpot()
 
+	if teleported then return end
+	teleported = true
+
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
@@ -354,7 +348,7 @@ if hasQuake() then
 
 	print("Already have Quake → Skip Roll")
 
-	resetAndAllocateStats()
+	resetStats()
 
 	systemState = "FARM"
 
@@ -370,7 +364,7 @@ else
 
 	eatQuake()
 
-	resetAndAllocateStats()
+	resetStats()
 
 	systemState = "FARM"
 
@@ -380,6 +374,8 @@ else
 
 end
 
+task.spawn(autoStats)
+
 -------------------------------------------------
 -- RESPAWN
 -------------------------------------------------
@@ -387,6 +383,8 @@ end
 player.CharacterAdded:Connect(function()
 
 	if systemState == "FARM" then
+
+		teleported = false
 
 		task.wait(3)
 
