@@ -52,6 +52,65 @@ local function hasQuake()
 end
 
 -------------------------------------------------
+-- RESET + AUTO STATS
+-------------------------------------------------
+
+local function resetAndAllocateStats()
+
+	print("Resetting Stats...")
+
+	ReplicatedStorage
+	:WaitForChild("RemoteEvents")
+	:WaitForChild("ResetStats")
+	:FireServer()
+
+	task.wait(2)
+
+	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
+
+	local total = statPoints.Value
+	local powerPoints = math.floor(total * 0.8)
+	local defensePoints = total - powerPoints
+
+	print("Total Stats:", total)
+
+	for i = 1, powerPoints do
+
+		local args = {
+			"Power",
+			1
+		}
+
+		ReplicatedStorage
+		:WaitForChild("RemoteEvents")
+		:WaitForChild("AllocateStat")
+		:FireServer(unpack(args))
+
+		task.wait()
+
+	end
+
+	for i = 1, defensePoints do
+
+		local args = {
+			"Defense",
+			1
+		}
+
+		ReplicatedStorage
+		:WaitForChild("RemoteEvents")
+		:WaitForChild("AllocateStat")
+		:FireServer(unpack(args))
+
+		task.wait()
+
+	end
+
+	print("Stats Allocation Complete")
+
+end
+
+-------------------------------------------------
 -- TWEEN
 -------------------------------------------------
 
@@ -104,7 +163,7 @@ local function autoRollFruit()
 	or npc.PrimaryPart
 
 	if not part then
-		warn("GemFruitDealer has no valid part")
+		warn("GemFruitDealer part missing")
 		return
 	end
 
@@ -168,8 +227,6 @@ local function eatQuake()
 			:WaitForChild("RemoteEvents")
 			:WaitForChild("FruitAction")
 			:FireServer(unpack(args))
-
-			print("Trying to eat fruit...")
 
 		end
 
@@ -286,6 +343,8 @@ if hasQuake() then
 
 	print("Already have Quake → Skip Roll")
 
+	resetAndAllocateStats()
+
 	systemState = "FARM"
 
 	teleportToSpot()
@@ -299,6 +358,8 @@ else
 	autoRollFruit()
 
 	eatQuake()
+
+	resetAndAllocateStats()
 
 	systemState = "FARM"
 
