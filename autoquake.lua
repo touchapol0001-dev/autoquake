@@ -9,8 +9,6 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local systemState = "ROLL"
 
-local allowEquipQuake = false
-
 -------------------------------------------------
 -- CHECK FRUIT
 -------------------------------------------------
@@ -74,12 +72,19 @@ local function resetAndAllocateStats()
 	local powerPoints = math.floor(total * 0.8)
 	local defensePoints = total - powerPoints
 
+	print("Total Stats:", total)
+
 	for i = 1, powerPoints do
+
+		local args = {
+			"Power",
+			1
+		}
 
 		ReplicatedStorage
 		:WaitForChild("RemoteEvents")
 		:WaitForChild("AllocateStat")
-		:FireServer("Power",1)
+		:FireServer(unpack(args))
 
 		task.wait()
 
@@ -87,10 +92,15 @@ local function resetAndAllocateStats()
 
 	for i = 1, defensePoints do
 
+		local args = {
+			"Defense",
+			1
+		}
+
 		ReplicatedStorage
 		:WaitForChild("RemoteEvents")
 		:WaitForChild("AllocateStat")
-		:FireServer("Defense",1)
+		:FireServer(unpack(args))
 
 		task.wait()
 
@@ -208,10 +218,15 @@ local function eatQuake()
 				hum:EquipTool(fruit)
 			end
 
+			local args = {
+				"eat",
+				"Quake Fruit"
+			}
+
 			ReplicatedStorage
 			:WaitForChild("RemoteEvents")
 			:WaitForChild("FruitAction")
-			:FireServer("eat","Quake Fruit")
+			:FireServer(unpack(args))
 
 		end
 
@@ -230,10 +245,6 @@ task.spawn(function()
 	while task.wait(0.5) do
 
 		if systemState ~= "FARM" then
-			continue
-		end
-		
-		if not allowEquipQuake then
 			continue
 		end
 
@@ -289,8 +300,6 @@ local function teleportToSpot()
 
 	print("Teleport Shinjuku")
 
-	allowEquipQuake = false
-
 	ReplicatedStorage
 	.Remotes
 	.TeleportToPortal
@@ -302,8 +311,6 @@ local function teleportToSpot()
 		hrp.CFrame = lockPos
 		task.wait()
 	end
-
-	allowEquipQuake = true
 
 end
 
