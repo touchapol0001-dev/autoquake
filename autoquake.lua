@@ -60,25 +60,24 @@ local statRemote =
 ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("AllocateStat")
 
 -------------------------------------------------
--- RESET + FAST STATS
+-- RESET + WAIT UNTIL STATS FINISH
 -------------------------------------------------
 
 local function resetStats()
 
 	print("Resetting Stats")
 
-	ReplicatedStorage
-	:WaitForChild("RemoteEvents")
-	:WaitForChild("ResetStats")
-	:FireServer()
+	local remoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+
+	remoteEvents:WaitForChild("ResetStats"):FireServer()
 
 	task.wait(1)
 
 	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
 
-	local points = statPoints.Value
+	while statPoints.Value > 0 do
 
-	if points > 0 then
+		local points = statPoints.Value
 
 		local power = math.floor(points * 0.8)
 		local defense = points - power
@@ -91,9 +90,11 @@ local function resetStats()
 			statRemote:FireServer("Defense",1)
 		end
 
+		task.wait()
+
 	end
 
-	print("Stats Applied Fast")
+	print("Stats Allocation Finished")
 
 end
 
@@ -112,10 +113,9 @@ local function autoStats()
 			continue
 		end
 
-		local points = statPoints.Value
+		if statPoints.Value > 0 then
 
-		if points > 0 then
-
+			local points = statPoints.Value
 			local power = math.floor(points * 0.8)
 			local defense = points - power
 
@@ -206,8 +206,6 @@ local function autoRollFruit()
 		prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
 		task.wait(0.5)
 	until prompt
-
-	print("Prompt Found")
 
 	while true do
 
