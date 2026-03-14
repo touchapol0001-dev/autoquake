@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
+
 local systemState = "ROLL"
 local teleported = false
 local allowEquipQuake = false
@@ -54,89 +55,6 @@ local function hasQuake()
 end
 
 -------------------------------------------------
--- STAT REMOTE
--------------------------------------------------
-
-local statRemote =
-ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("AllocateStat")
-
--------------------------------------------------
--- RESET + WAIT UNTIL STATS FINISH
--------------------------------------------------
-
-local function resetStats()
-
-	print("Resetting Stats")
-
-	local remoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
-
-	remoteEvents:WaitForChild("ResetStats"):FireServer()
-
-	task.wait(1)
-
-	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
-
-	while statPoints.Value > 0 do
-
-		local points = statPoints.Value
-
-		local power = math.floor(points * 0.8)
-		local defense = points - power
-
-		for i = 1, power do
-			statRemote:FireServer("Power",1)
-		end
-
-		for i = 1, defense do
-			statRemote:FireServer("Defense",1)
-		end
-
-		task.wait()
-
-	end
-
-	print("Stats Allocation Finished")
-
-end
-
--------------------------------------------------
--- AUTO STATS WHEN LEVEL UP
--------------------------------------------------
-
-local function autoStats()
-
-	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
-
-	while true do
-
-		if systemState ~= "FARM" then
-			task.wait(0.1)
-			continue
-		end
-
-		if statPoints.Value > 0 then
-
-			local points = statPoints.Value
-			local power = math.floor(points * 0.8)
-			local defense = points - power
-
-			for i = 1, power do
-				statRemote:FireServer("Power",1)
-			end
-
-			for i = 1, defense do
-				statRemote:FireServer("Defense",1)
-			end
-
-		end
-
-		task.wait()
-
-	end
-
-end
-
--------------------------------------------------
 -- TWEEN
 -------------------------------------------------
 
@@ -160,105 +78,76 @@ local function tweenToPosition(targetCFrame,speed)
 end
 
 -------------------------------------------------
--- TELEPORT SAILOR
+-- RESET STATS
 -------------------------------------------------
 
-local function teleportSailor()
+local statRemote =
+ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("AllocateStat")
 
-	print("Teleport Sailor")
+local function resetStats()
 
-	ReplicatedStorage.Remotes.TeleportToPortal:FireServer("Sailor")
+	print("Reset Stats")
 
-end
-
--------------------------------------------------
--- AUTO ROLL
--------------------------------------------------
-
-local function autoRollFruit()
-
-	print("Start Rolling")
-
-	local npc =
-	workspace:WaitForChild("ServiceNPCs")
-	:WaitForChild("GemFruitDealer")
-
-	task.wait(6)
-
-	local part =
-	npc:FindFirstChild("HumanoidRootPart")
-	or npc:FindFirstChild("Head")
-	or npc.PrimaryPart
-
-	if not part then
-		warn("GemFruitDealer part missing")
-		return
-	end
-
-	local target = part.CFrame * CFrame.new(0,0,4)
-
-	tweenToPosition(target,100)
+	ReplicatedStorage.RemoteEvents.ResetStats:FireServer()
 
 	task.wait(1)
 
-	local prompt
+	local statPoints = player.Data.StatPoints
 
-	repeat
-		prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
-		task.wait(0.5)
-	until prompt
+	while statPoints.Value > 0 do
 
-	while true do
+		local points = statPoints.Value
 
-		if hasQuakeFruit() then
-			print("Quake Fruit Found")
-			break
+		local power = math.floor(points * 0.8)
+		local defense = points - power
+
+		for i=1,power do
+			statRemote:FireServer("Power",1)
 		end
 
-		fireproximityprompt(prompt)
+		for i=1,defense do
+			statRemote:FireServer("Defense",1)
+		end
 
-		print("Rolling fruit...")
-
-		task.wait(3)
+		task.wait()
 
 	end
 
 end
 
 -------------------------------------------------
--- EAT QUAKE
+-- AUTO STATS
 -------------------------------------------------
 
-local function eatQuake()
+local function autoStats()
 
-	print("Start Eating Quake Fruit")
+	local statPoints = player.Data.StatPoints
 
 	while true do
 
-		if hasQuake() then
-			print("Quake power acquired")
-			break
+		if systemState ~= "FARM" then
+			task.wait(0.2)
+			continue
 		end
 
-		local fruit =
-		player.Backpack:FindFirstChild("Quake Fruit") or
-		player.Character:FindFirstChild("Quake Fruit")
+		if statPoints.Value > 0 then
 
-		if fruit then
+			local points = statPoints.Value
 
-			local hum = player.Character:FindFirstChild("Humanoid")
-			if hum then
-				hum:EquipTool(fruit)
+			local power = math.floor(points * 0.8)
+			local defense = points - power
+
+			for i=1,power do
+				statRemote:FireServer("Power",1)
 			end
 
-			ReplicatedStorage
-			:WaitForChild("RemoteEvents")
-			:WaitForChild("FruitAction")
-			:FireServer("eat","Quake Fruit")
+			for i=1,defense do
+				statRemote:FireServer("Defense",1)
+			end
 
 		end
 
-		task.wait(0.5)
+		task.wait()
 
 	end
 
@@ -272,36 +161,31 @@ task.spawn(function()
 
 	while task.wait(0.5) do
 
-		if systemState ~= "FARM" then
-			continue
-		end
-
-		if not allowEquipQuake then
-			continue
-		end
+		if systemState ~= "FARM" then continue end
+		if not allowEquipQuake then continue end
 
 		local char = player.Character
-		local backpack = player:FindFirstChild("Backpack")
+		local backpack = player.Backpack
 
-		if not char or not backpack then
-			continue
-		end
+		if not char or not backpack then continue end
 
 		local hum = char:FindFirstChild("Humanoid")
-		if not hum then
-			continue
-		end
+		if not hum then continue end
 
 		local quake =
 		backpack:FindFirstChild("Quake") or
 		char:FindFirstChild("Quake")
 
 		if quake then
+
 			if quake.Parent ~= char then
 				hum:EquipTool(quake)
 			end
+
 		else
+
 			ReplicatedStorage.Remotes.EquipWeapon:FireServer("Equip","Quake")
+
 		end
 
 	end
@@ -309,7 +193,7 @@ task.spawn(function()
 end)
 
 -------------------------------------------------
--- TELEPORT SHINJUKU (WAIT UNTIL REAL TELEPORT)
+-- TELEPORT SYSTEM
 -------------------------------------------------
 
 local lockPos = CFrame.new(
@@ -326,43 +210,62 @@ local function teleportToSpot()
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	print("Teleport Shinjuku")
-
 	allowEquipQuake = false
 
 	local oldPos = hrp.Position
 
-	ReplicatedStorage
-	.Remotes
-	.TeleportToPortal
-	:FireServer("Shinjuku")
+	print("Teleport Shinjuku")
 
-	repeat
-		task.wait(0.5)
+	ReplicatedStorage.Remotes.TeleportToPortal:FireServer("Shinjuku")
+
+	repeat task.wait(0.5)
 	until (hrp.Position - oldPos).Magnitude > 100
 
-	print("Teleport Confirmed")
+	print("Teleport Loaded")
 
 	task.wait(2)
 
-	for i = 1,10 do
+	for i=1,10 do
 		hrp.CFrame = lockPos
 		task.wait()
 	end
 
+	print("Lock Position")
+
 	allowEquipQuake = true
 
-	print("Position Locked → Equip Quake")
-
 end
+
+-------------------------------------------------
+-- LOCK POSITION
+-------------------------------------------------
+
+task.spawn(function()
+
+	while task.wait(1) do
+
+		if systemState ~= "FARM" then continue end
+
+		local char = player.Character
+		if not char then continue end
+
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if not hrp then continue end
+
+		if (hrp.Position - lockPos.Position).Magnitude > 10 then
+			hrp.CFrame = lockPos
+		end
+
+	end
+
+end)
 
 -------------------------------------------------
 -- SETTINGS
 -------------------------------------------------
 
-local SettingsToggle = ReplicatedStorage
-:WaitForChild("RemoteEvents")
-:WaitForChild("SettingsToggle")
+local SettingsToggle =
+ReplicatedStorage.RemoteEvents.SettingsToggle
 
 local settings = {
 "DisablePvP",
@@ -383,7 +286,7 @@ end
 
 if hasQuake() then
 
-	print("Already have Quake → Skip Roll")
+	print("Already Have Quake")
 
 	resetStats()
 
@@ -393,13 +296,56 @@ if hasQuake() then
 
 else
 
-	teleportSailor()
+	print("Teleport Sailor")
+
+	ReplicatedStorage.Remotes.TeleportToPortal:FireServer("Sailor")
 
 	task.wait(6)
 
-	autoRollFruit()
+	local npc =
+	workspace.ServiceNPCs.GemFruitDealer
 
-	eatQuake()
+	local part =
+	npc:FindFirstChild("HumanoidRootPart")
+	or npc.PrimaryPart
+
+	local target = part.CFrame * CFrame.new(0,0,4)
+
+	tweenToPosition(target,100)
+
+	local prompt
+
+	repeat
+		prompt = npc:FindFirstChildWhichIsA("ProximityPrompt",true)
+		task.wait()
+	until prompt
+
+	while not hasQuakeFruit() do
+
+		fireproximityprompt(prompt)
+
+		task.wait(3)
+
+	end
+
+	print("Got Quake Fruit")
+
+	while not hasQuake() do
+
+		local fruit = player.Backpack:FindFirstChild("Quake Fruit")
+
+		if fruit then
+
+			player.Character.Humanoid:EquipTool(fruit)
+
+			ReplicatedStorage.RemoteEvents.FruitAction
+			:FireServer("eat","Quake Fruit")
+
+		end
+
+		task.wait(0.5)
+
+	end
 
 	resetStats()
 
@@ -426,34 +372,6 @@ player.CharacterAdded:Connect(function()
 		task.wait(3)
 
 		teleportToSpot()
-
-	end
-
-end)
-
--------------------------------------------------
--- LOCK POSITION
--------------------------------------------------
-
-task.spawn(function()
-
-	while task.wait(1) do
-
-		if systemState ~= "FARM" then
-			continue
-		end
-
-		local char = player.Character
-
-		if char and char:FindFirstChild("HumanoidRootPart") then
-
-			local hrp = char.HumanoidRootPart
-
-			if (hrp.Position - lockPos.Position).Magnitude > 10 then
-				hrp.CFrame = lockPos
-			end
-
-		end
 
 	end
 
