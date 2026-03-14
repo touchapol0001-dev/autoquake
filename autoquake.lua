@@ -1,4 +1,4 @@
-repeat task.wait() until game:IsLoaded()
+repeat task.wait(2) until game:IsLoaded()
 
 print("Auto Quake System Start")
 
@@ -76,7 +76,7 @@ local function autoStats()
 
 	local statPoints = player:WaitForChild("Data"):WaitForChild("StatPoints")
 
-	while task.wait(0.5) do
+	while task.wait(0.3) do
 
 		if systemState ~= "FARM" then
 			continue
@@ -246,10 +246,6 @@ task.spawn(function()
 
 	while task.wait(0.5) do
 
-		if systemState ~= "FARM" then
-			continue
-		end
-
 		local char = player.Character
 		local backpack = player:FindFirstChild("Backpack")
 
@@ -274,11 +270,40 @@ task.spawn(function()
 
 		else
 
-			ReplicatedStorage
-			.Remotes
-			.EquipWeapon
-			:FireServer("Equip","Quake")
+			local args = {"Equip","Quake"}
 
+			ReplicatedStorage
+			:WaitForChild("Remotes")
+			:WaitForChild("EquipWeapon")
+			:FireServer(unpack(args))
+
+		end
+
+	end
+
+end)
+
+-------------------------------------------------
+-- AUTO SKILL
+-------------------------------------------------
+
+task.spawn(function()
+
+	while task.wait(0.15) do
+
+		if systemState ~= "FARM" then
+			continue
+		end
+
+		local char = player.Character
+		if not char then continue end
+
+		local quake = char:FindFirstChild("Quake")
+
+		if quake then
+			pcall(function()
+				quake:Activate()
+			end)
 		end
 
 	end
@@ -289,11 +314,9 @@ end)
 -- TELEPORT SHINJUKU
 -------------------------------------------------
 
-local lockPos = CFrame.new(
-321.706757,
--1.539090,
--1756.500977
-) * CFrame.Angles(0,-0.113749,0)
+local lockPos =
+CFrame.new(321.706757,-1.539090,-1756.500977)
+* CFrame.Angles(0,-0.113749,0)
 
 local function teleportToSpot()
 
@@ -303,12 +326,12 @@ local function teleportToSpot()
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	print("Teleport Shinjuku")
+	local args = {"Shinjuku"}
 
 	ReplicatedStorage
-	.Remotes
-	.TeleportToPortal
-	:FireServer("Shinjuku")
+	:WaitForChild("Remotes")
+	:WaitForChild("TeleportToPortal")
+	:FireServer(unpack(args))
 
 	task.wait(5)
 
@@ -320,10 +343,11 @@ local function teleportToSpot()
 end
 
 -------------------------------------------------
--- SETTINGS ลดแลค
+-- SETTINGS
 -------------------------------------------------
 
-local SettingsToggle = ReplicatedStorage
+local SettingsToggle =
+ReplicatedStorage
 :WaitForChild("RemoteEvents")
 :WaitForChild("SettingsToggle")
 
@@ -382,15 +406,11 @@ task.spawn(autoStats)
 
 player.CharacterAdded:Connect(function()
 
-	if systemState == "FARM" then
+	teleported = false
 
-		teleported = false
+	task.wait(3)
 
-		task.wait(3)
-
-		teleportToSpot()
-
-	end
+	teleportToSpot()
 
 end)
 
