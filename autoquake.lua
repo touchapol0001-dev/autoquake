@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local systemState = "ROLL"
 local teleported = false
+local allowEquipQuake = false
 
 -------------------------------------------------
 -- CHECK FRUIT
@@ -280,6 +281,10 @@ task.spawn(function()
 			continue
 		end
 
+		if not allowEquipQuake then
+			continue
+		end
+
 		local char = player.Character
 		local backpack = player:FindFirstChild("Backpack")
 
@@ -335,6 +340,8 @@ local function teleportToSpot()
 
 	print("Teleport Shinjuku")
 
+	allowEquipQuake = false
+
 	ReplicatedStorage
 	.Remotes
 	.TeleportToPortal
@@ -346,6 +353,10 @@ local function teleportToSpot()
 		hrp.CFrame = lockPos
 		task.wait()
 	end
+
+	allowEquipQuake = true
+
+	print("Position Locked → Equip Quake")
 
 end
 
