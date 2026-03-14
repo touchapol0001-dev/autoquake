@@ -42,6 +42,12 @@ local function hasQuake()
 		return true
 	end
 
+	if player:FindFirstChild("Data") and player.Data:FindFirstChild("DevilFruit") then
+		if player.Data.DevilFruit.Value == "Quake" then
+			return true
+		end
+	end
+
 	return false
 end
 
@@ -92,7 +98,17 @@ local function autoRollFruit()
 
 	task.wait(6)
 
-	local target = npc.HumanoidRootPart.CFrame * CFrame.new(0,0,4)
+	local part =
+	npc:FindFirstChild("HumanoidRootPart")
+	or npc:FindFirstChild("Head")
+	or npc.PrimaryPart
+
+	if not part then
+		warn("GemFruitDealer has no valid part")
+		return
+	end
+
+	local target = part.CFrame * CFrame.new(0,0,4)
 
 	tweenToPosition(target,100)
 
@@ -266,19 +282,31 @@ end
 -- MAIN
 -------------------------------------------------
 
-teleportSailor()
+if hasQuake() then
 
-task.wait(6)
+	print("Already have Quake → Skip Roll")
 
-autoRollFruit()
+	systemState = "FARM"
 
-eatQuake()
+	teleportToSpot()
 
-systemState = "FARM"
+else
 
-task.wait(3)
+	teleportSailor()
 
-teleportToSpot()
+	task.wait(6)
+
+	autoRollFruit()
+
+	eatQuake()
+
+	systemState = "FARM"
+
+	task.wait(3)
+
+	teleportToSpot()
+
+end
 
 -------------------------------------------------
 -- RESPAWN
