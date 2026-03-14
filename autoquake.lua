@@ -98,44 +98,59 @@ end
 
 task.spawn(function()
 
-	local remote = ReplicatedStorage.RemoteEvents.AllocateStat
+    local remote = game:GetService("ReplicatedStorage")
+        :WaitForChild("RemoteEvents")
+        :WaitForChild("AllocateStat")
 
-	while task.wait(0.5) do
+    while task.wait(0.5) do
 
-		if systemState ~= "FARM" then
-			continue
-		end
+        if systemState ~= "FARM" then
+            continue
+        end
 
-		local data = player:FindFirstChild("Data")
-		if not data then
-			continue
-		end
+        local data = player:FindFirstChild("Data")
+        if not data then
+            continue
+        end
 
-		local statPoints = data:FindFirstChild("StatPoints")
-		if not statPoints then
-			continue
-		end
+        local statPoints = data:FindFirstChild("StatPoints")
+        local powerStat = data:FindFirstChild("Power")
 
-		local points = statPoints.Value
+        if not statPoints or not powerStat then
+            continue
+        end
 
-		if points <= 0 then
-			continue
-		end
+        local total = statPoints.Value
+        if total <= 0 then
+            continue
+        end
 
-		local power = math.floor(points * 0.8)
-		local defense = points - power
+        local currentPower = powerStat.Value
+        local maxPower = 11500
 
-		if power > 0 then
-			remote:FireServer("Power",power)
-		end
+        local powerLeft = math.max(0, maxPower - currentPower)
 
-		if defense > 0 then
-			remote:FireServer("Defense",defense)
-		end
+        local powerAllocate = math.min(powerLeft, math.floor(total * 0.8))
+        local defenseAllocate = total - powerAllocate
 
-		print("Auto Stats:",points)
+        local allocated = false
 
-	end
+        if powerAllocate > 0 then
+            remote:FireServer("Power", powerAllocate)
+            allocated = true
+        end
+
+        if defenseAllocate > 0 then
+            remote:FireServer("Defense", defenseAllocate)
+            allocated = true
+        end
+
+        -- แสดง log เฉพาะตอนอัพจริง
+        if allocated then
+            print("Auto Stats:", total)
+        end
+
+    end
 
 end)
 
