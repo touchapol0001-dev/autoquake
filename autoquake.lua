@@ -251,15 +251,10 @@ local function eatQuake()
 				hum:EquipTool(fruit)
 			end
 
-			local args = {
-				"eat",
-				"Quake Fruit"
-			}
-
 			ReplicatedStorage
 			:WaitForChild("RemoteEvents")
 			:WaitForChild("FruitAction")
-			:FireServer(unpack(args))
+			:FireServer("eat","Quake Fruit")
 
 		end
 
@@ -302,18 +297,11 @@ task.spawn(function()
 		char:FindFirstChild("Quake")
 
 		if quake then
-
 			if quake.Parent ~= char then
 				hum:EquipTool(quake)
 			end
-
 		else
-
-			ReplicatedStorage
-			.Remotes
-			.EquipWeapon
-			:FireServer("Equip","Quake")
-
+			ReplicatedStorage.Remotes.EquipWeapon:FireServer("Equip","Quake")
 		end
 
 	end
@@ -321,7 +309,7 @@ task.spawn(function()
 end)
 
 -------------------------------------------------
--- TELEPORT SHINJUKU
+-- TELEPORT SHINJUKU (WAIT UNTIL REAL TELEPORT)
 -------------------------------------------------
 
 local lockPos = CFrame.new(
@@ -342,12 +330,20 @@ local function teleportToSpot()
 
 	allowEquipQuake = false
 
+	local oldPos = hrp.Position
+
 	ReplicatedStorage
 	.Remotes
 	.TeleportToPortal
 	:FireServer("Shinjuku")
 
-	task.wait(5)
+	repeat
+		task.wait(0.5)
+	until (hrp.Position - oldPos).Magnitude > 100
+
+	print("Teleport Confirmed")
+
+	task.wait(2)
 
 	for i = 1,10 do
 		hrp.CFrame = lockPos
