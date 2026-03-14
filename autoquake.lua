@@ -336,6 +336,64 @@ for _,v in pairs(settings) do
 end
 
 -------------------------------------------------
+-- AUTO STATS DURING FARM
+-------------------------------------------------
+
+task.spawn(function()
+
+	while task.wait(0.5) do
+
+		if systemState ~= "FARM" then
+			continue
+		end
+
+		local data = player:FindFirstChild("Data")
+		if not data then
+			continue
+		end
+
+		local statPoints = data:FindFirstChild("StatPoints")
+		if not statPoints then
+			continue
+		end
+
+		if statPoints.Value <= 0 then
+			continue
+		end
+
+		local total = statPoints.Value
+		local powerPoints = math.floor(total * 0.8)
+		local defensePoints = total - powerPoints
+
+		for i = 1, powerPoints do
+
+			ReplicatedStorage
+			:WaitForChild("RemoteEvents")
+			:WaitForChild("AllocateStat")
+			:FireServer("Power",1)
+
+			task.wait()
+
+		end
+
+		for i = 1, defensePoints do
+
+			ReplicatedStorage
+			:WaitForChild("RemoteEvents")
+			:WaitForChild("AllocateStat")
+			:FireServer("Defense",1)
+
+			task.wait()
+
+		end
+
+		print("Auto Stats Allocated")
+
+	end
+
+end)
+
+-------------------------------------------------
 -- MAIN
 -------------------------------------------------
 
